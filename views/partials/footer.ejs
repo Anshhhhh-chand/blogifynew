@@ -1,0 +1,99 @@
+<footer class="footer mt-5 py-4">
+  <div class="container">
+    <div class="row align-items-start">
+      <!-- Main Footer Content -->
+      <div class="col-lg-4 mb-3">
+        <h5 class="footer-brand mb-2">Blogify</h5>
+        <p class="text-muted mb-2 small">
+          A platform for sharing stories, ideas, and experiences. Connect with writers from around the world.
+        </p>
+        <div class="social-links">
+          <a href="mailto:chandansh82@gmail.com" class="social-link" title="Email">
+            <i class="bi bi-envelope-fill"></i>
+          </a>
+          <a href="https://www.linkedin.com/in/ansh-chand-830b40233/" class="social-link" title="LinkedIn" target="_blank">
+            <i class="bi bi-linkedin"></i>
+          </a>
+          <a href="https://github.com/Anshhhhh-chand" class="social-link" title="GitHub" target="_blank">
+            <i class="bi bi-github"></i>
+          </a>
+          <a href="https://leetcode.com/u/Life_aura_/" class="social-link" title="LeetCode" target="_blank">
+            <i class="bi bi-code-square"></i>
+          </a>
+          <a href="https://www.instagram.com/ansh_4sure_/" class="social-link" title="Instagram" target="_blank">
+            <i class="bi bi-instagram"></i>
+          </a>
+        </div>
+      </div>
+      
+      <!-- Quick Links -->
+      <div class="col-lg-3 col-md-6 mb-3">
+        <h6 class="footer-heading mb-2 small">Quick Links</h6>
+        <ul class="footer-links small">
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog/add-new">Write Story</a></li>
+          <li><a href="/user/signin">Sign In</a></li>
+          <li><a href="/user/signup">Sign Up</a></li>
+        </ul>
+      </div>
+      
+      <!-- Contact & Time -->
+      <div class="col-lg-5 mb-3">
+        <h6 class="footer-heading mb-2 small">Contact & Info</h6>
+        <div class="contact-info small">
+          <p class="mb-1">
+            <i class="bi bi-envelope me-2"></i>
+            <a href="mailto:chandansh82@gmail.com" class="text-decoration-none">chandansh82@gmail.com</a>
+          </p>
+          <p class="mb-1">
+            <i class="bi bi-geo-alt me-2"></i>
+            India
+          </p>
+          <p class="mb-1">
+            <i class="bi bi-clock me-2"></i>
+            <span id="current-time"></span>
+          </p>
+          <p class="mb-0">
+            <i class="bi bi-calendar me-2"></i>
+            <span id="current-date"></span>
+          </p>
+        </div>
+      </div>
+    </div>
+    <!-- Bottom Footer -->
+    <div class="footer-bottom mt-3 pt-3 border-top">
+      <div class="row align-items-center">
+        <div class="col-md-12 text-center">
+          <p class="mb-0 text-muted small">
+            © 2025 Blogify. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Update time and date
+function updateTime() {
+  const now = new Date();
+  // Format time
+  const timeOptions = { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    hour12: true 
+  };
+  document.getElementById('current-time').textContent = now.toLocaleTimeString('en-US', timeOptions);
+  // Format date
+  const dateOptions = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', dateOptions);
+}
+updateTime();
+setInterval(updateTime, 1000);
+</script> 

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('partials/head') %>
+    <title>Edit Story - Blogify</title>
+  </head>
+  <body>
+    <%- include('partials/nav') %>
+    
+    <div class="container mt-4">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="auth-card">
+            <h2 class="auth-title">Edit Your Story</h2>
+            <p class="text-center text-muted mb-4">Update your story content and cover image.</p>
+            
+            <form action="/blog/edit/<%= blog._id %>" method="post" enctype="multipart/form-data"> 
+              <div class="mb-4">
+                <label for="coverImage" class="form-label">Cover Image</label>
+                <div class="mb-3">
+                  <img src="<%= blog.coverImageURL %>" alt="Current cover" class="img-fluid rounded" style="max-height: 200px;">
+                  <p class="text-muted mt-2">Current cover image</p>
+                </div>
+                <input
+                  type="file"
+                  class="form-control"
+                  id="coverImage"
+                  name="coverImage"
+                  accept="image/*"
+                />
+                <div class="form-text">Leave empty to keep the current image, or choose a new one.</div>
+              </div>
+              
+              <div class="mb-4">
+                <label for="title" class="form-label">Story Title</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="title"
+                  name="title"
+                  value="<%= blog.title %>"
+                  required
+                />
+              </div>
+              
+              <div class="mb-4">
+                <label for="body" class="form-label">Your Story</label>
+                <textarea 
+                  name="body"
+                  class="form-control"
+                  id="body"
+                  rows="12"
+                  required
+                ><%= blog.body %></textarea>
+              </div>
+              
+              <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Update Story</button>
+                <a href="/blog/<%= blog._id %>" class="btn btn-outline-secondary">Cancel</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+    <%- include('./partials/scripts') %>
+  </body>
+</html> 

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('partials/head') %>
+    <title><%= blog.title %> - Blogify</title>
+  </head>
+  <body>
+    <%- include('partials/nav') %>
+    
+    <div class="container mt-4">
+      <!-- Blog Header -->
+      <div class="blog-header">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h1 class="blog-title mb-0"><%= blog.title %></h1>
+          <% if (user && blog.createdBy._id.toString() === user._id) { %>
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-gear"></i> Actions
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/blog/edit/<%= blog._id %>">Edit Story</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form action="/blog/delete/<%= blog._id %>" method="POST" style="display: inline;">
+                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to delete this story? This action cannot be undone.')">
+                      Delete Story
+                    </button>
+                  </form>
+                </li>
+              </ul>
+            </div>
+          <% } %>
+        </div>
+        <img src="<%= blog.coverImageURL %>" class="blog-image mb-4" style="max-width: 400px; max-height: 300px; width: 100%; height: auto; object-fit: cover;" alt="<%= blog.title %>">
+      </div>
+
+      <!-- Blog Content -->
+      <div class="blog-content">
+        <div style="white-space: pre-wrap; word-wrap: break-word;">
+          <%= blog.body %>
+        </div>
+      </div>
+
+      <!-- Author Info -->
+      <div class="blog-author">
+        <img src="<%= blog.createdBy.profileImageURL %>" class="author-avatar" alt="<%= blog.createdBy.fullName %>">
+        <div>
+          <div class="author-name"><%= blog.createdBy.fullName %></div>
+          <small class="text-muted">Author</small>
+        </div>
+      </div>
+
+      <!-- Comments Section -->
+      <div class="comments-section">
+        <h4 class="mb-4">Comments (<%= comments.length %>)</h4>
+        
+        <% if (comments && comments.length > 0) { %>
+          <div class="list-group list-group-flush">
+            <% comments.forEach(comment => { %>
+              <div class="comment-item">
+                <img src="<%= comment.createdBy.profileImageURL %>" class="comment-avatar" alt="<%= comment.createdBy.fullName %>">
+                <div class="comment-content">
+                  <div class="comment-author"><%= comment.createdBy.fullName %></div>
+                  <div class="comment-text"><%= comment.body %></div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="text-center py-4">
+            <p class="text-muted">No comments yet. Be the first to share your thoughts!</p>
+          </div>
+        <% } %>
+
+        <!-- Add Comment Form -->
+        <div class="mt-4">
+          <h5>Add a Comment</h5>
+          <% if(!user) { %>
+            <div class="alert alert-info">
+              <p class="mb-0">Please <a href="/user/signin" class="alert-link">login</a> to comment.</p>
+            </div>
+          <% } else { %>
+            <form action="/blog/comment/<%= blog._id %>" method="POST">
+              <div class="mb-3">
+                <label for="body" class="form-label">Your Comment</label>
+                <textarea class="form-control" id="body" name="body" rows="4" placeholder="Share your thoughts..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Post Comment</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+    <%- include('./partials/scripts') %>
+  </body>
+</html>
