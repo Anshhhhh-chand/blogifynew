@@ -6,16 +6,8 @@ const path = require('path');
 const Blog = require('../models/blog')
 
 const Comment = require('../models/comment')
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null,path.resolve(`./public/uploads`))
-  },
-  filename: function (req, file, cb) {
-  const fileName= `${Date.now()}-${file.originalname}`
-  cb(null,fileName)
-  }
-})
-const upload = multer({ storage: storage })
+const { storage } = require('../services/cloudinary');
+const upload = require('multer')({ storage });
 
 
 router.get('/add-new',(req,res)=>{
@@ -40,7 +32,7 @@ router.post('/',upload.single('coverImage'), async (req,res)=>{
        const newBlog= await Blog.create({
 
             body,title,createdBy:req.user._id,
-            coverImageURL: `/uploads/${req.file.filename}`
+            coverImageURL: req.file ? req.file.path : undefined
         }
     )   
     return res.redirect(`/blog/${newBlog._id}`)
@@ -107,7 +99,7 @@ router.post('/edit/:id', upload.single('coverImage'), async (req, res) => {
         const updateData = { title, body };
         
         if (req.file) {
-            updateData.coverImageURL = `/uploads/${req.file.filename}`;
+            updateData.coverImageURL = req.file.path;
         }
         
         await Blog.findByIdAndUpdate(req.params.id, updateData);

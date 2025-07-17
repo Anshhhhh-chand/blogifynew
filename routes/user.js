@@ -7,17 +7,9 @@ const Blog = require('../models/blog');
 const { createTokenForUser } = require('../services/authentication');
 const { checkForAuthenticationInCookie } = require('../middlewares/authenticatiion');
 const { createHmac } = require('node:crypto');
+const { storage } = require('../services/cloudinary');
+const upload = require('multer')({ storage });
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null,path.resolve(`./public/uploads`))
-  },
-  filename: function (req, file, cb) {
-  const fileName= `${Date.now()}-${file.originalname}`
-  cb(null,fileName)
-  }
-})
-const upload = multer({ storage: storage })
 
 router.get('/signup',(req,res)=>{
     return res.render("signup",{
@@ -114,7 +106,7 @@ router.post('/profile/image', checkForAuthenticationInCookie("token"), upload.si
         }
         
         await User.findByIdAndUpdate(req.user._id, {
-            profileImageURL: `/uploads/${req.file.filename}`
+            profileImageURL: req.file.path
         });
         
         return res.redirect("/user/profile");
