@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <%- include('partials/head') %>
-    <title><%= blog.title %> - Blogify</title>
+    <title><%= blog && blog.title ? blog.title : 'Untitled' %> - Blogify</title>
   </head>
   <body>
     <%- include('partials/nav') %>

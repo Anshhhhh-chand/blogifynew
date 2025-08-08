@@ -4,6 +4,9 @@ const path = require("path");
 const mongoose = require("mongoose");
 const UserRoute = require("./routes/user");
 const BlogRoute = require("./routes/blog");
+const aiRoutes = require('./routes/ai');
+const twitterRoutes = require('./routes/twitter');
+const { rateLimitAI } = require('./middlewares/rateLimitAI');
 const cookieParser= require('cookie-parser');
 const { applyTimestamps } = require("./models/user");
 const Blog= require("./models/blog");
@@ -16,6 +19,7 @@ mongoose.connect(process.env.MONGO_URL).then(e =>
 )
 app.set("view engine", "ejs");
 app.set("views", path.resolve("./views"));
+app.use(express.json()); // Add JSON body parser for API requests
 app.use(express.urlencoded({extended :false}))
 app.use(cookieParser());
 app.use(checkForAuthenticationInCookie("token"))
@@ -32,6 +36,18 @@ app.get("/", async(req, res) => {
   });
 
 });
+
+// AI Content Calendar route
+app.get("/calendar", (req, res) => {
+  if (!req.user) {
+    return res.redirect("/user/signin");
+  }
+  res.render("calendar", {
+    user: req.user
+  });
+});
 app.use("/user", UserRoute);
 app.use("/blog", BlogRoute);
+app.use('/ai', rateLimitAI, aiRoutes);
+app.use('/twitter', twitterRoutes);
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

@@ -4,8 +4,8 @@ const multer= require('multer')
 const path = require('path');
 
 const Blog = require('../models/blog')
-
 const Comment = require('../models/comment')
+const tweetNewPost = require('../services/tweetNewPost');
 const { storage } = require('../services/cloudinary');
 const upload = require('multer')({ storage });
 
@@ -16,15 +16,20 @@ router.get('/add-new',(req,res)=>{
     })
 })
 
-router.post('/comment/:blogId', async (req,res)=>{
+router.post('/comment/:slug', async (req,res)=>{
     const {body}= req.body;
-    const blogId= req.params.blogId;
-   await Comment.create({
+    const blog = await Blog.findOne({ slug: req.params.slug });
+    
+    if (!blog) {
+        return res.status(404).send("Blog not found");
+    }
+    
+    await Comment.create({
         body,
         createdBy: req.user._id,
-        blogId
+        blogId: blog._id
     })
-    return res.redirect(`/blog/${blogId}`)
+    return res.redirect(`/blog/${req.params.slug}`)
 })
 
 router.post('/',upload.single('coverImage'), async (req,res)=>{
@@ -34,15 +39,32 @@ router.post('/',upload.single('coverImage'), async (req,res)=>{
             body,title,createdBy:req.user._id,
             coverImageURL: req.file ? req.file.path : undefined
         }
-    )   
-    return res.redirect(`/blog/${newBlog._id}`)
+    )
+    
+    // Auto-tweet new post if user has Twitter enabled
+    try {
+        await tweetNewPost({
+            title: newBlog.title,
+            slug: newBlog.slug,
+            createdBy: newBlog.createdBy
+        });
+    } catch (error) {
+        console.error('Twitter auto-post failed:', error);
+        // Don't break the blog creation flow
+    }
+    
+    return res.redirect(`/blog/${newBlog.slug}`)
 })
 
-router.get('/:id', async (req,res)=>{
+router.get('/:slug', async (req,res)=>{
    try {
-        const blog = await Blog.findById(req.params.id).populate("createdBy");
+        const blog = await Blog.findOne({ slug: req.params.slug }).populate("createdBy");
 
-        const comments = await Comment.find({ blogId: req.params.id })
+        if (!blog) {
+            return res.status(404).send("Blog not found");
+        }
+
+        const comments = await Comment.find({ blogId: blog._id })
             .populate("createdBy")
             .sort({ createdAt: -1 });
 
@@ -58,9 +80,9 @@ router.get('/:id', async (req,res)=>{
 });
 
 // Edit blog route
-router.get('/edit/:id', async (req, res) => {
+router.get('/edit/:slug', async (req, res) => {
     try {
-        const blog = await Blog.findById(req.params.id).populate("createdBy");
+        const blog = await Blog.findOne({ slug: req.params.slug }).populate("createdBy");
         
         if (!blog) {
             return res.status(404).send("Blog not found");
@@ -82,10 +104,10 @@ router.get('/edit/:id', async (req, res) => {
 });
 
 // Update blog route
-router.post('/edit/:id', upload.single('coverImage'), async (req, res) => {
+router.post('/edit/:slug', upload.single('coverImage'), async (req, res) => {
     try {
         const { title, body } = req.body;
-        const blog = await Blog.findById(req.params.id);
+        const blog = await Blog.findOne({ slug: req.params.slug });
         
         if (!blog) {
             return res.status(404).send("Blog not found");
@@ -102,9 +124,9 @@ router.post('/edit/:id', upload.single('coverImage'), async (req, res) => {
             updateData.coverImageURL = req.file.path;
         }
         
-        await Blog.findByIdAndUpdate(req.params.id, updateData);
+        await Blog.findByIdAndUpdate(blog._id, updateData);
         
-        return res.redirect(`/blog/${req.params.id}`);
+        return res.redirect(`/blog/${req.params.slug}`);
     } catch (err) {
         console.error(err);
         return res.status(500).send("Something went wrong");
@@ -112,9 +134,9 @@ router.post('/edit/:id', upload.single('coverImage'), async (req, res) => {
 });
 
 // Delete blog route
-router.post('/delete/:id', async (req, res) => {
+router.post('/delete/:slug', async (req, res) => {
     try {
-        const blog = await Blog.findById(req.params.id);
+        const blog = await Blog.findOne({ slug: req.params.slug });
         
         if (!blog) {
             return res.status(404).send("Blog not found");
@@ -126,10 +148,10 @@ router.post('/delete/:id', async (req, res) => {
         }
         
         // Delete associated comments
-        await Comment.deleteMany({ blogId: req.params.id });
+        await Comment.deleteMany({ blogId: blog._id });
         
         // Delete the blog
-        await Blog.findByIdAndDelete(req.params.id);
+        await Blog.findByIdAndDelete(blog._id);
         
         return res.redirect("/");
     } catch (err) {

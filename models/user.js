@@ -30,6 +30,17 @@ const userSchema = new Schema({
         default: 'USER'
        
     },
+    twitter: {
+        accessToken: { type: String, select: false },
+        // Backward-compat secret field (no longer used with OAuth2 user context)
+        accessTokenSecret: { type: String, select: false },
+        refreshToken: { type: String, select: false },
+        expiresAt: { type: Date },
+        userId: { type: String },
+        screenName: String,
+        lastTweetAt: Date,
+        autoTweet: { type: Boolean, default: false }
+    },
 }, {
     timestamps: true
 });

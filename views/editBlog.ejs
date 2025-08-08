@@ -54,6 +54,8 @@
                 ><%= blog.body %></textarea>
               </div>
               
+              <%- include('partials/aiButtons') %>
+              
               <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">Update Story</button>
                 <a href="/blog/<%= blog._id %>" class="btn btn-outline-secondary">Cancel</a>

@@ -1,0 +1,202 @@
+<!-- AI-powered buttons for blog creation and optimization -->
+<div class="ai-buttons-container" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+  <h6 style="margin: 0 0 10px 0; color: #495057; font-weight: 600;">🤖 AI Assistant</h6>
+  
+  <div class="btn-group" role="group" style="gap: 10px; display: flex; flex-wrap: wrap;">
+    <button type="button" onclick="generateDraft()" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 5px;">
+      🪄 Generate Draft
+      <span id="draftLoader" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+    </button>
+    
+    <button type="button" onclick="optimizeSEO()" class="btn btn-success btn-sm" style="display: flex; align-items: center; gap: 5px;">
+      🔍 SEO Optimize
+      <span id="seoLoader" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+    </button>
+    
+    <button type="button" onclick="testTwitterConnection()" class="btn btn-info btn-sm" style="display: flex; align-items: center; gap: 5px;">
+      🐦 Test Twitter
+      <span id="twitterLoader" class="spinner-border spinner-border-sm" role="status" style="display: none;"></span>
+    </button>
+  </div>
+  
+  <div id="aiStatus" class="mt-2" style="font-size: 0.875rem; color: #6c757d;"></div>
+</div>
+
+<script>
+// AI Functions - Simple and Direct
+function showStatus(message, type) {
+  var aiStatus = document.getElementById('aiStatus');
+  if (aiStatus) {
+    aiStatus.innerHTML = '<div class="alert alert-' + type + ' alert-sm py-1 px-2 mb-0" style="font-size: 0.8rem;">' + message + '</div>';
+    setTimeout(function() {
+      aiStatus.innerHTML = '';
+    }, 5000);
+  }
+}
+
+// Generate Draft Function
+function generateDraft() {
+  var titleField = document.getElementById('title');
+  var bodyField = document.getElementById('body');
+  var draftLoader = document.getElementById('draftLoader');
+  
+  if (!titleField || !bodyField) {
+    showStatus('❌ Form fields not found', 'danger');
+    return;
+  }
+  
+  var topic = titleField.value.trim();
+  
+  if (!topic || topic.length < 3) {
+    showStatus('❌ Please enter a topic/title (at least 3 characters)', 'warning');
+    titleField.focus();
+    return;
+  }
+
+  // Show loading
+  if (draftLoader) draftLoader.style.display = 'inline-block';
+  showStatus('🤖 Generating draft... This may take 30-60 seconds', 'info');
+  
+  fetch('/ai/draft', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ topic: topic })
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+    if (data.success && data.draft) {
+      bodyField.value = data.draft;
+      bodyField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showStatus('✅ Draft generated successfully!', 'success');
+    } else {
+      var errorMessage = 'Unknown error occurred';
+      if (data.error) {
+        errorMessage = data.error;
+      } else if (data.errors && Array.isArray(data.errors)) {
+        errorMessage = data.errors.map(function(err) { return err.msg || err.message || err; }).join(', ');
+      }
+      showStatus('❌ Error: ' + errorMessage, 'danger');
+    }
+  })
+  .catch(function(error) {
+    console.error('Error generating draft:', error);
+    showStatus('❌ Network error. Please try again.', 'danger');
+  })
+  .finally(function() {
+    if (draftLoader) draftLoader.style.display = 'none';
+  });
+}
+
+// SEO Optimize Function
+function optimizeSEO() {
+  var titleField = document.getElementById('title');
+  var bodyField = document.getElementById('body');
+  var seoLoader = document.getElementById('seoLoader');
+  
+  if (!titleField || !bodyField) {
+    showStatus('❌ Form fields not found', 'danger');
+    return;
+  }
+  
+  var content = bodyField.value.trim();
+  var title = titleField.value.trim();
+  
+  if (!content || content.length < 50) {
+    showStatus('❌ Please write some content first (at least 50 characters)', 'warning');
+    bodyField.focus();
+    return;
+  }
+  
+  // Show loading
+  if (seoLoader) seoLoader.style.display = 'inline-block';
+  showStatus('🔍 Optimizing SEO... This may take 20-30 seconds', 'info');
+
+  fetch('/ai/seo', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title: title, markdown: content })
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+    if (data.success && data.seo) {
+      var meta = data.seo;
+      
+      // Update title if available and different
+      if (meta.title && meta.title !== title) {
+        var updateTitle = confirm('Update title to: "' + meta.title + '"?');
+        if (updateTitle) {
+          titleField.value = meta.title;
+        }
+      }
+      
+      // Show SEO suggestions
+      var seoInfo = '✅ SEO Analysis Complete!\n';
+      if (meta.title) seoInfo += '📝 Suggested Title: ' + meta.title + '\n';
+      if (meta.slug) seoInfo += '🔗 URL Slug: ' + meta.slug + '\n';
+      if (meta.description) seoInfo += '📄 Meta Description: ' + meta.description + '\n';
+      if (data.keywords && data.keywords.length > 0) {
+        seoInfo += '🏷️ Keywords: ' + data.keywords.join(', ');
+      }
+      
+      alert(seoInfo);
+      showStatus('✅ SEO optimization complete!', 'success');
+    } else {
+      var errorMessage = 'Unknown error occurred';
+      if (data.error) {
+        errorMessage = data.error;
+      } else if (data.errors && Array.isArray(data.errors)) {
+        errorMessage = data.errors.map(function(err) { return err.msg || err.message || err; }).join(', ');
+      }
+      showStatus('❌ Error: ' + errorMessage, 'danger');
+    }
+  })
+  .catch(function(error) {
+    console.error('Error optimizing SEO:', error);
+    showStatus('❌ Network error. Please try again.', 'danger');
+  })
+  .finally(function() {
+    if (seoLoader) seoLoader.style.display = 'none';
+  });
+}
+
+// Test Twitter Connection Function
+function testTwitterConnection() {
+  var twitterLoader = document.getElementById('twitterLoader');
+  
+  // Show loading
+  if (twitterLoader) twitterLoader.style.display = 'inline-block';
+  showStatus('🐦 Testing Twitter connection...', 'info');
+  
+  fetch('/twitter/test', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+    if (data.success) {
+      showStatus('✅ ' + data.message, 'success');
+    } else {
+      showStatus('❌ Error: ' + data.error, 'danger');
+    }
+  })
+  .catch(function(error) {
+    console.error('Error testing Twitter connection:', error);
+    showStatus('❌ Network error. Please try again.', 'danger');
+  })
+  .finally(function() {
+    if (twitterLoader) twitterLoader.style.display = 'none';
+  });
+}
+</script>

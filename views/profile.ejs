@@ -116,6 +116,43 @@
               </div>
             </div>
 
+            <!-- Twitter Auto-Posting Settings -->
+            <div class="card mb-4">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🐦 Twitter Auto-Posting</h5>
+                <% if (user.twitter && user.twitter.autoTweet) { %>
+                  <span class="badge bg-success">✅ Enabled</span>
+                <% } else { %>
+                  <span class="badge bg-secondary">Disabled</span>
+                <% } %>
+              </div>
+              <div class="card-body">
+                <% if (user.twitter && user.twitter.autoTweet) { %>
+                  <div class="alert alert-success" role="alert">
+                    <strong>Connected!</strong> New posts will auto-tweet as <strong>@<%= user.twitter.screenName %></strong>
+                  </div>
+                  <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-info" id="testTwitterBtn">
+                      🧪 Test Connection
+                    </button>
+                    <form action="/twitter/disable" method="POST" style="display: inline;">
+                      <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Are you sure you want to disconnect Twitter?')">
+                        🚫 Disconnect Twitter
+                      </button>
+                    </form>
+                  </div>
+                <% } else { %>
+                  <div class="mb-3">
+                    <p class="text-muted mb-2">Connect your Twitter account to automatically share new blog posts.</p>
+                    <div class="alert alert-warning small">
+                      <strong>Note:</strong> Your Twitter App must have <code>Read and Write</code> permissions, OAuth 2.0 enabled, and include this callback URL in the app settings.
+                    </div>
+                  </div>
+                  <a href="/twitter/connect" class="btn btn-primary w-100">🐦 Connect Twitter</a>
+                <% } %>
+              </div>
+            </div>
+
             <!-- Account Actions -->
             <div class="card mb-4">
               <div class="card-header">
@@ -125,6 +162,9 @@
                 <div class="d-grid gap-2">
                   <a href="/" class="btn btn-outline-primary">Back to Home</a>
                   <a href="/blog/add-new" class="btn btn-outline-secondary">Write New Story</a>
+                  <a href="/calendar" class="btn btn-outline-info">
+                    <i class="bi bi-calendar3"></i> Content Calendar
+                  </a>
                 </div>
               </div>
             </div>
@@ -139,5 +179,56 @@
 
     <%- include('./partials/footer') %>
     <%- include('./partials/scripts') %>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const twitterStatus = document.getElementById('twitterStatus');
+      const testTwitterBtn = document.getElementById('testTwitterBtn');
+      
+      // Helper function to show status messages
+      function showTwitterStatus(message, type = 'info') {
+        if (twitterStatus) {
+          twitterStatus.innerHTML = `<div class="alert alert-${type} alert-sm py-2 px-3 mb-0">${message}</div>`;
+          setTimeout(() => {
+            if (type !== 'success') twitterStatus.innerHTML = '';
+          }, 5000);
+        }
+      }
+      
+      // Removed bearer form submission; now using Connect Twitter redirect flow
+      
+      // Handle Twitter connection test
+      if (testTwitterBtn) {
+        testTwitterBtn.addEventListener('click', async function() {
+          const originalText = testTwitterBtn.textContent;
+          testTwitterBtn.disabled = true;
+          testTwitterBtn.innerHTML = '⏳ Testing...';
+          
+          try {
+            const response = await fetch('/twitter/test', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+              alert(`✅ ${data.message}`);
+            } else {
+              alert(`❌ Error: ${data.error}`);
+            }
+          } catch (error) {
+            console.error('Error testing Twitter connection:', error);
+            alert('❌ Network error. Please try again.');
+          } finally {
+            testTwitterBtn.disabled = false;
+            testTwitterBtn.innerHTML = originalText;
+          }
+        });
+      }
+    });
+    </script>
   </body>
 </html> 
