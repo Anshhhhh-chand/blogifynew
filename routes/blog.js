@@ -2,6 +2,7 @@ const {Router}= require('express')
 const router = Router();
 const multer= require('multer')
 const path = require('path');
+const mongoose = require('mongoose');
 
 const Blog = require('../models/blog')
 const Comment = require('../models/comment')
@@ -17,19 +18,29 @@ router.get('/add-new',(req,res)=>{
 })
 
 router.post('/comment/:slug', async (req,res)=>{
-    const {body}= req.body;
-    const blog = await Blog.findOne({ slug: req.params.slug });
-    
-    if (!blog) {
-        return res.status(404).send("Blog not found");
+    try {
+        // Require authentication to comment
+        if (!req.user) {
+            return res.status(401).send("Unauthorized");
+        }
+
+        const { body } = req.body;
+        const blog = await findBySlugOrId(req.params.slug);
+        
+        if (!blog) {
+            return res.status(404).send("Blog not found");
+        }
+        
+        await Comment.create({
+            body,
+            createdBy: req.user._id,
+            blogId: blog._id
+        });
+        return res.redirect(`/blog/${blog.slug}`);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).send("Something went wrong");
     }
-    
-    await Comment.create({
-        body,
-        createdBy: req.user._id,
-        blogId: blog._id
-    })
-    return res.redirect(`/blog/${req.params.slug}`)
 })
 
 router.post('/',upload.single('coverImage'), async (req,res)=>{
@@ -56,12 +67,25 @@ router.post('/',upload.single('coverImage'), async (req,res)=>{
     return res.redirect(`/blog/${newBlog.slug}`)
 })
 
+async function findBySlugOrId(slugOrId) {
+  let blog = await Blog.findOne({ slug: slugOrId }).populate('createdBy');
+  if (!blog && mongoose.Types.ObjectId.isValid(slugOrId)) {
+    blog = await Blog.findById(slugOrId).populate('createdBy');
+  }
+  return blog;
+}
+
 router.get('/:slug', async (req,res)=>{
    try {
-        const blog = await Blog.findOne({ slug: req.params.slug }).populate("createdBy");
+        const blog = await findBySlugOrId(req.params.slug);
 
         if (!blog) {
             return res.status(404).send("Blog not found");
+        }
+
+        // If reached via legacy id path, redirect to canonical slug URL
+        if (req.params.slug !== blog.slug) {
+            return res.redirect(`/blog/${blog.slug}`);
         }
 
         const comments = await Comment.find({ blogId: blog._id })
@@ -82,7 +106,7 @@ router.get('/:slug', async (req,res)=>{
 // Edit blog route
 router.get('/edit/:slug', async (req, res) => {
     try {
-        const blog = await Blog.findOne({ slug: req.params.slug }).populate("createdBy");
+        const blog = await findBySlugOrId(req.params.slug);
         
         if (!blog) {
             return res.status(404).send("Blog not found");
@@ -107,14 +131,17 @@ router.get('/edit/:slug', async (req, res) => {
 router.post('/edit/:slug', upload.single('coverImage'), async (req, res) => {
     try {
         const { title, body } = req.body;
-        const blog = await Blog.findOne({ slug: req.params.slug });
+        const blog = await findBySlugOrId(req.params.slug);
         
         if (!blog) {
             return res.status(404).send("Blog not found");
         }
         
-        // Check if user is the creator
-        if (blog.createdBy.toString() !== req.user._id) {
+        // Check if user is the creator (supports populated or raw ObjectId)
+        const ownerId = (blog.createdBy && blog.createdBy._id)
+          ? blog.createdBy._id.toString()
+          : blog.createdBy.toString();
+        if (ownerId !== req.user._id) {
             return res.status(403).send("Unauthorized");
         }
         
@@ -126,7 +153,7 @@ router.post('/edit/:slug', upload.single('coverImage'), async (req, res) => {
         
         await Blog.findByIdAndUpdate(blog._id, updateData);
         
-        return res.redirect(`/blog/${req.params.slug}`);
+        return res.redirect(`/blog/${blog.slug}`);
     } catch (err) {
         console.error(err);
         return res.status(500).send("Something went wrong");
@@ -136,14 +163,22 @@ router.post('/edit/:slug', upload.single('coverImage'), async (req, res) => {
 // Delete blog route
 router.post('/delete/:slug', async (req, res) => {
     try {
-        const blog = await Blog.findOne({ slug: req.params.slug });
+        const blog = await findBySlugOrId(req.params.slug);
         
         if (!blog) {
             return res.status(404).send("Blog not found");
         }
         
-        // Check if user is the creator
-        if (blog.createdBy.toString() !== req.user._id) {
+        // Ensure user is authenticated
+        if (!req.user) {
+            return res.status(401).send("Unauthorized");
+        }
+
+        // Check if user is the creator (supports populated or raw ObjectId)
+        const ownerId = (blog.createdBy && blog.createdBy._id)
+          ? blog.createdBy._id.toString()
+          : blog.createdBy.toString();
+        if (ownerId !== req.user._id) {
             return res.status(403).send("Unauthorized");
         }
         

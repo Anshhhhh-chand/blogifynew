@@ -31,7 +31,7 @@
             </div>
           <% } %>
         </div>
-        <img src="<%= blog.coverImageURL %>" class="blog-image mb-4" style="max-width: 400px; max-height: 300px; width: 100%; height: auto; object-fit: cover;" alt="<%= blog.title %>">
+        <img src="<%= blog.coverImageURL %>" class="blog-image mb-4" style="max-width: 720px; max-height: 420px; width: 100%; height: auto; object-fit: cover;" alt="<%= blog.title %>">
       </div>
 
       <!-- Blog Content -->
@@ -80,7 +80,7 @@
               <p class="mb-0">Please <a href="/user/signin" class="alert-link">login</a> to comment.</p>
             </div>
           <% } else { %>
-            <form action="/blog/comment/<%= blog._id %>" method="POST">
+            <form action="/blog/comment/<%= blog.slug %>" method="POST">
               <div class="mb-3">
                 <label for="body" class="form-label">Your Comment</label>
                 <textarea class="form-control" id="body" name="body" rows="4" placeholder="Share your thoughts..."></textarea>

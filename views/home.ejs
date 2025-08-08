@@ -8,57 +8,92 @@
     <%- include('partials/nav') %>
     
     <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="container">
-        <h1 class="fade-in">Discover Amazing Stories</h1>
-        <p class="fade-in">Explore thought-provoking articles, share your ideas, and connect with writers from around the world.</p>
+    <section class="hero-section neon-hero bg-grid">
+      <div class="container position-relative">
+        <h1 class="fade-in gradient-text bebas" style="font-size:3.6rem;">BIG IDEAS FOR QUIET HEARTS</h1>
+        <p class="fade-in hero-subtitle">Your private studio for thoughts and feelings. Minimal noise. Maximum clarity.</p>
         <% if (locals.user) { %>
-          <a href="/blog/add-new" class="btn btn-light btn-lg mt-3 fade-in">Write Your Story</a>
+          <a href="/blog/add-new" class="btn btn-light btn-lg mt-3 fade-in btn-glow">Begin a New Entry</a>
         <% } else { %>
-          <a href="/user/signup" class="btn btn-light btn-lg mt-3 fade-in">Join Our Community</a>
+          <a href="/user/signup" class="btn btn-light btn-lg mt-3 fade-in btn-glow">Create Your Sanctuary</a>
         <% } %>
+        <div class="hero-orbs">
+          <span class="orb"></span>
+          <span class="orb"></span>
+          <span class="orb"></span>
+        </div>
       </div>
     </section>
 
-    <!-- Blog Grid -->
-    <div class="container">
-      <div class="row mb-4">
-        <div class="col-12">
-          <h2 class="text-center mb-4">Latest Stories</h2>
+    <!-- Aesthetic Sections -->
+    <div class="container section">
+      <!-- <div class="home-header d-flex align-items-center justify-content-between">
+        <h2 class="home-title mb-0">Latest News</h2>
+        <div class="chips d-none d-md-flex">
+          <span class="chip active">All</span>
+          <span class="chip">Poetry</span>
+          <span class="chip">Reflections</span>
+          <span class="chip">Memories</span>
+          <span class="chip">Letters</span>
+        </div>
+      </div> -->
+
+      <!-- Featured Row -->
+      <div class="row mt-3 g-3">
+        <div class="col-lg-8">
+          <% const featured = blogs[0]; %>
+          <% if (featured) { %>
+            <div class="featured-card">
+              <img class="featured-img" src="<%= featured.coverImageURL %>" alt="<%= featured.title %>">
+              <div class="featured-content">
+                <div class="text-uppercase small text-muted mb-2">FEATURED</div>
+                <h3 class="featured-title"><%= featured.title %></h3>
+                <p class="featured-excerpt">
+                  <%= (featured.body || '').substring(0, 180) %>...
+                </p>
+                <a class="btn btn-primary btn-glow mt-2" href="/blog/<%= featured.slug || featured._id %>">View Article</a>
+              </div>
+            </div>
+          <% } %>
+        </div>
+        <div class="col-lg-4">
+          <div class="mini-cards">
+            <% blogs.slice(1,5).forEach(function(b){ %>
+              <a class="mini-card-link" href="/blog/<%= b.slug || b._id %>">
+                <div class="mini-card">
+                  <img class="mini-card-img" src="<%= b.coverImageURL %>" alt="<%= b.title %>">
+                  <div class="mini-card-body">
+                    <div class="mini-card-title"><%= b.title %></div>
+                  </div>
+                </div>
+              </a>
+            <% }) %>
+          </div>
         </div>
       </div>
-      
-      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        <% blogs.forEach((blog, index) => { %>
-          <div class="col fade-in" style="animation-delay: <%= index * 0.1 %>s;">
-            <div class="card h-100">
-              <img src="<%= blog.coverImageURL %>" class="card-img-top" alt="<%= blog.title %>" style="max-width: 400px; max-height: 300px; width: 100%; height: auto; object-fit: cover;" />
-              <div class="card-body d-flex flex-column">
-                <h5 class="card-title"><%= blog.title %></h5>
-                <p class="card-text text-muted">
-                  <% if (blog.body.length > 100) { %>
-                    <%= blog.body.substring(0, 100) %>...
-                  <% } else { %>
-                    <%= blog.body %>
-                  <% } %>
-                </p>
-                <div class="mt-auto">
-                  <a href="/blog/<%= blog._id %>" class="btn btn-primary w-100">Read More</a>
-                </div>
-              </div>
+
+      <!-- Secondary Grid -->
+      <div class="news-grid mt-4">
+        <% blogs.slice(5).forEach(function(b){ %>
+          <div class="card">
+            <img src="<%= b.coverImageURL %>" class="card-img-top" alt="<%= b.title %>">
+            <div class="card-body">
+              <h5 class="card-title"><%= b.title %></h5>
+              <p class="card-text"><%= (b.body || '').substring(0, 120) %>...</p>
+              <a href="/blog/<%= b.slug || b._id %>" class="btn btn-outline-primary">View Article</a>
             </div>
           </div>
         <% }) %>
       </div>
-      
+
       <% if (blogs.length === 0) { %>
         <div class="text-center py-5">
-          <h3 class="text-muted">No stories yet</h3>
-          <p class="text-muted">Be the first to share your story!</p>
+          <h3 class="text-muted">No entries yet</h3>
+          <p class="text-muted">Be the first to write.</p>
           <% if (locals.user) { %>
-            <a href="/blog/add-new" class="btn btn-primary">Write Your First Story</a>
+            <a href="/blog/add-new" class="btn btn-primary btn-glow">Write Your First Entry</a>
           <% } else { %>
-            <a href="/user/signup" class="btn btn-primary">Join and Start Writing</a>
+            <a href="/user/signup" class="btn btn-primary btn-glow">Create Your Sanctuary</a>
           <% } %>
         </div>
       <% } %>
