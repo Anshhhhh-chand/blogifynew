@@ -60,7 +60,7 @@ function formatPrompt(template, variables) {
  * @param {string} model - Model to use (default: groq/llama-3.1-8b)
  * @returns {Promise<string>} Generated text
  */
-async function generateText(prompt, variables = {}, model = 'llama3-8b-8192') {
+async function generateText(prompt, variables = {}, model = 'groq/compound') {
   try {
     // Format the prompt with variables
     const formattedPrompt = formatPrompt(prompt, variables);
@@ -87,7 +87,7 @@ async function generateText(prompt, variables = {}, model = 'llama3-8b-8192') {
  * @param {string} model - Model to use
  * @returns {AsyncGenerator<string>} Stream of text chunks
  */
-async function* streamText(prompt, variables = {}, model = 'llama3-8b-8192') {
+async function* streamText(prompt, variables = {}, model = 'groq/compound') {
   try {
     const formattedPrompt = formatPrompt(prompt, variables);
     const messages = [

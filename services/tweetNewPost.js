@@ -111,7 +111,10 @@ async function tweetNewPost(post) {
       
       let errorMessage = 'Unknown Twitter API error';
       
-      if (error.code === 403) {
+      if (error.code === 402) {
+        errorMessage = 'Twitter API subscription required or credits depleted. X has made this a premium API feature.';
+        console.error('💡 Solution: Check your X developer portal billing and limits.');
+      } else if (error.code === 403) {
         errorMessage = 'Insufficient permissions. Make sure your Twitter app has "Read and Write" permissions.';
         console.error('💡 Solution: Check your Twitter Developer App permissions');
       } else if (error.code === 401) {

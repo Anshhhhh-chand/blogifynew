@@ -207,7 +207,7 @@ router.get('/test-groq', async (req, res) => {
     const response = await generateText(
       testPrompt,
       {},
-      'groq/llama-3.1-8b'
+      process.env.GROQ_MODEL || 'groq/compound'
     );
     
     console.log('Groq test successful:', response.substring(0, 100) + '...');
