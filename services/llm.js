@@ -1,6 +1,5 @@
 const { chat } = require('./litellm');
 
-// Prompt templates as simple strings
 const DRAFT_PROMPT = `You are a professional blog writer. Generate a comprehensive blog post about the following topic.
 
 Topic: {topic}
@@ -39,12 +38,6 @@ For each week, provide:
 
 Format the response in clear markdown with weekly sections.`;
 
-/**
- * Format a prompt template with variables
- * @param {string} template - Template string with {variables}
- * @param {Object} variables - Key-value pairs to replace in template
- * @returns {string} Formatted prompt
- */
 
 function formatPrompt(template, variables) {
   return Object.entries(variables).reduce(
@@ -53,25 +46,15 @@ function formatPrompt(template, variables) {
   );
 }
 
-/**
- * Generate text using LiteLLM
- * @param {string} prompt - The prompt to send to the AI
- * @param {Object} variables - Variables to interpolate into the prompt
- * @param {string} model - Model to use (default: groq/llama-3.1-8b)
- * @returns {Promise<string>} Generated text
- */
 async function generateText(prompt, variables = {}, model = 'groq/compound') {
   try {
-    // Format the prompt with variables
     const formattedPrompt = formatPrompt(prompt, variables);
-    
-    // Create messages array for chat completion
+
     const messages = [
       { role: 'system', content: 'You are a helpful AI assistant.' },
       { role: 'user', content: formattedPrompt }
     ];
-    
-    // Call LiteLLM
+
     const response = await chat(messages, model);
     return response;
   } catch (error) {
@@ -80,13 +63,6 @@ async function generateText(prompt, variables = {}, model = 'groq/compound') {
   }
 }
 
-/**
- * Stream text response (for future implementation if needed)
- * @param {string} prompt - The prompt to send to the AI
- * @param {Object} variables - Variables to interpolate into the prompt
- * @param {string} model - Model to use
- * @returns {AsyncGenerator<string>} Stream of text chunks
- */
 async function* streamText(prompt, variables = {}, model = 'groq/compound') {
   try {
     const formattedPrompt = formatPrompt(prompt, variables);
@@ -94,9 +70,7 @@ async function* streamText(prompt, variables = {}, model = 'groq/compound') {
       { role: 'system', content: 'You are a helpful AI assistant.' },
       { role: 'user', content: formattedPrompt }
     ];
-    
-    // For now, just return the full response as a single chunk
-    // In a real implementation, this would stream the response
+
     const response = await chat(messages, model);
     yield response;
   } catch (error) {
@@ -106,21 +80,17 @@ async function* streamText(prompt, variables = {}, model = 'groq/compound') {
 }
 
 module.exports = {
-  // Prompt templates
   DRAFT_PROMPT,
   SEO_PROMPT,
 
   CALENDAR_PROMPT,
-  
-  // Functions
+
   generateText,
   streamText,
-  
-  // Aliases for backward compatibility
+
   draftPromptTemplate: DRAFT_PROMPT,
   seoPromptTemplate: SEO_PROMPT,
 
-  
-  // Helper function for external use if needed
+
   formatPrompt
 };

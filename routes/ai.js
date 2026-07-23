@@ -5,7 +5,6 @@ const { generateText, DRAFT_PROMPT } = require('../services/llm');
 
 const router = express.Router();
 
-// Validation middleware
 const validateTopic = [
   body('topic').notEmpty().withMessage('Topic is required').isLength({ min: 3, max: 200 }).withMessage('Topic must be between 3 and 200 characters')
 ];
@@ -18,7 +17,6 @@ const validateUserId = [
   body('userId').notEmpty().withMessage('User ID is required').isMongoId().withMessage('Invalid user ID format')
 ];
 
-// Error handler
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -26,15 +24,13 @@ const handleValidationErrors = (req, res, next) => {
     return res.status(400).json({
       success: false,
       error: errorMessages,
-      errors: errors.array() // Keep both for compatibility
+      errors: errors.array() 
     });
   }
   next();
 };
 
-// POST /ai/draft - Generate blog draft
 router.post('/draft', async (req, res) => {
-  // Accept topic or title as the topic field
   const topic = req.body.topic || req.body.title;
   console.log('[AI DRAFT] Incoming body:', req.body);
   if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
@@ -45,7 +41,6 @@ router.post('/draft', async (req, res) => {
   }
   try {
     console.log(`Generating draft for topic: ${topic}`);
-    // Use the draft workflow
     const result = await runDraftWorkflow(topic);
     if (result.error) {
       return res.status(500).json({
@@ -53,7 +48,6 @@ router.post('/draft', async (req, res) => {
         error: result.error
       });
     }
-    // Return as 'draft' for frontend compatibility
     res.json({
       success: true,
       draft: result.markdown || result.draft || '',
@@ -68,11 +62,8 @@ router.post('/draft', async (req, res) => {
   }
 });
 
-// POST /ai/seo - Generate SEO metadata
 router.post('/seo', async (req, res) => {
-  // Accept title, topic, or subject as the title field
   const title = req.body.title || req.body.topic || req.body.subject;
-  // Accept markdown, body, or content as the content field
   const markdown = req.body.markdown || req.body.body || req.body.content;
   console.log('[AI SEO] Incoming body:', req.body);
   if (!title || typeof title !== 'string' || title.trim().length < 3) {
@@ -89,7 +80,6 @@ router.post('/seo', async (req, res) => {
   }
   try {
     console.log('Generating SEO metadata for content');
-    // Use the SEO workflow (pass both title and markdown)
     const result = await runSeoWorkflow(title, markdown);
     if (result.error) {
       console.error('SEO workflow error:', result.error);
@@ -114,29 +104,25 @@ router.post('/seo', async (req, res) => {
 
 
 
-// POST /ai/calendar - Generate content calendar
 router.post('/calendar', validateUserId, handleValidationErrors, async (req, res) => {
   try {
     const { userId } = req.body;
-    
-    console.log(`Generating content calendar for user: ${userId}`);
-    
-    // Import Blog model
+
+        console.log(`Generating content calendar for user: ${userId}`);
+
     const Blog = require('../models/blog');
-    
-    // Get user's recent blog posts to understand their niche
+
     const recentPosts = await Blog.find({ createdBy: userId })
       .sort({ createdAt: -1 })
       .limit(10)
       .select('title body');
-    
-    let userNiche = 'general blogging';
+
+        let userNiche = 'general blogging';
     if (recentPosts.length > 0) {
       const topics = recentPosts.map(post => post.title).join(', ');
       userNiche = topics;
     }
-    
-    // Generate calendar prompt
+
     const calendarPrompt = `Based on these recent blog posts: ${userNiche}
     
     Generate 5 future blog post ideas with predicted traffic potential.
@@ -153,14 +139,13 @@ router.post('/calendar', validateUserId, handleValidationErrors, async (req, res
     ]
     
     Make sure topics are relevant to the user's existing content and trending in their niche.`;
-    
-    const calendarResponse = await generateText(calendarPrompt);
-    
-    let calendar;
+
+        const calendarResponse = await generateText(calendarPrompt);
+
+        let calendar;
     try {
       calendar = JSON.parse(calendarResponse);
     } catch (parseError) {
-      // Fallback calendar if JSON parsing fails
       calendar = [
         {
           title: "10 Tips for Better Content Creation",
@@ -178,8 +163,8 @@ router.post('/calendar', validateUserId, handleValidationErrors, async (req, res
         }
       ];
     }
-    
-    res.json({
+
+        res.json({
       success: true,
       data: {
         calendar,
@@ -187,8 +172,8 @@ router.post('/calendar', validateUserId, handleValidationErrors, async (req, res
         userNiche: recentPosts.length > 0 ? 'Personalized' : 'General'
       }
     });
-    
-  } catch (error) {
+
+      } catch (error) {
     console.error('Error generating calendar:', error);
     res.status(500).json({
       success: false,
@@ -197,22 +182,20 @@ router.post('/calendar', validateUserId, handleValidationErrors, async (req, res
   }
 });
 
-// Test route to verify Groq integration
 router.get('/test-groq', async (req, res) => {
   try {
     console.log('Testing Groq API connection...');
-    
-    // Test with a simple prompt
+
     const testPrompt = 'Hello, Groq! Please respond with "pong" if you can hear me.';
     const response = await generateText(
       testPrompt,
       {},
       process.env.GROQ_MODEL || 'groq/compound'
     );
-    
-    console.log('Groq test successful:', response.substring(0, 100) + '...');
-    
-    res.json({
+
+        console.log('Groq test successful:', response.substring(0, 100) + '...');
+
+        res.json({
       success: true,
       message: 'Groq API connection successful',
       response: response.trim()

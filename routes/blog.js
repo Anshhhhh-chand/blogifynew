@@ -9,9 +9,13 @@ const Comment = require('../models/comment')
 const tweetNewPost = require('../services/tweetNewPost');
 const { storage } = require('../services/cloudinary');
 const upload = require('multer')({ storage });
+const { indexBlog } = require('../services/ragRetrieval');
 
 
 router.get('/add-new',(req,res)=>{
+    if (!req.user) {
+        return res.redirect("/user/signin");
+    }
     return res.render("addBlog",{
         user:req.user,
     })
@@ -19,19 +23,18 @@ router.get('/add-new',(req,res)=>{
 
 router.post('/comment/:slug', async (req,res)=>{
     try {
-        // Require authentication to comment
         if (!req.user) {
             return res.status(401).send("Unauthorized");
         }
 
         const { body } = req.body;
         const blog = await findBySlugOrId(req.params.slug);
-        
-        if (!blog) {
+
+                if (!blog) {
             return res.status(404).send("Blog not found");
         }
-        
-        await Comment.create({
+
+                await Comment.create({
             body,
             createdBy: req.user._id,
             blogId: blog._id
@@ -43,29 +46,45 @@ router.post('/comment/:slug', async (req,res)=>{
     }
 })
 
-router.post('/',upload.single('coverImage'), async (req,res)=>{
-      const {title,body}= req.body
-       const newBlog= await Blog.create({
-
-            body,title,createdBy:req.user._id,
-            coverImageURL: req.file ? req.file.path : undefined
-        }
-    )
-    
-    // Auto-tweet new post if user has Twitter enabled
+router.post('/', upload.single('coverImage'), async (req, res) => {
     try {
-        await tweetNewPost({
-            title: newBlog.title,
-            slug: newBlog.slug,
-            createdBy: newBlog.createdBy
+        if (!req.user) {
+            return res.redirect("/user/signin");
+        }
+
+                const { title, body } = req.body;
+
+                if (!title || !body) {
+            return res.status(400).send("Title and body are required");
+        }
+
+        const newBlog = await Blog.create({
+            body,
+            title,
+            createdBy: req.user._id,
+            coverImageURL: req.file ? req.file.path : undefined
         });
-    } catch (error) {
-        console.error('Twitter auto-post failed:', error);
-        // Don't break the blog creation flow
+
+        try {
+            await tweetNewPost({
+                title: newBlog.title,
+                slug: newBlog.slug,
+                createdBy: newBlog.createdBy
+            });
+        } catch (error) {
+            console.error('Twitter auto-post failed:', error);
+        }
+
+        indexBlog(newBlog._id.toString(), newBlog.body).catch((err) =>
+            console.error('RAG indexing failed (non-blocking):', err.message)
+        );
+
+        return res.redirect(`/blog/${newBlog.slug}`);
+    } catch (err) {
+        console.error("Error creating blog:", err);
+        return res.status(500).send(err.message || "Failed to create blog");
     }
-    
-    return res.redirect(`/blog/${newBlog.slug}`)
-})
+});
 
 async function findBySlugOrId(slugOrId) {
   let blog = await Blog.findOne({ slug: slugOrId }).populate('createdBy');
@@ -83,7 +102,6 @@ router.get('/:slug', async (req,res)=>{
             return res.status(404).send("Blog not found");
         }
 
-        // If reached via legacy id path, redirect to canonical slug URL
         if (req.params.slug !== blog.slug) {
             return res.redirect(`/blog/${blog.slug}`);
         }
@@ -103,21 +121,19 @@ router.get('/:slug', async (req,res)=>{
     }
 });
 
-// Edit blog route
 router.get('/edit/:slug', async (req, res) => {
     try {
         const blog = await findBySlugOrId(req.params.slug);
-        
-        if (!blog) {
+
+                if (!blog) {
             return res.status(404).send("Blog not found");
         }
-        
-        // Check if user is the creator
+
         if (blog.createdBy._id.toString() !== req.user._id) {
             return res.status(403).send("Unauthorized");
         }
-        
-        return res.render('editBlog', {
+
+                return res.render('editBlog', {
             user: req.user,
             blog
         });
@@ -127,68 +143,65 @@ router.get('/edit/:slug', async (req, res) => {
     }
 });
 
-// Update blog route
 router.post('/edit/:slug', upload.single('coverImage'), async (req, res) => {
     try {
         const { title, body } = req.body;
         const blog = await findBySlugOrId(req.params.slug);
-        
-        if (!blog) {
+
+                if (!blog) {
             return res.status(404).send("Blog not found");
         }
-        
-        // Check if user is the creator (supports populated or raw ObjectId)
+
         const ownerId = (blog.createdBy && blog.createdBy._id)
           ? blog.createdBy._id.toString()
           : blog.createdBy.toString();
         if (ownerId !== req.user._id) {
             return res.status(403).send("Unauthorized");
         }
-        
-        const updateData = { title, body };
-        
-        if (req.file) {
+
+                const updateData = { title, body };
+
+                if (req.file) {
             updateData.coverImageURL = req.file.path;
         }
-        
-        await Blog.findByIdAndUpdate(blog._id, updateData);
-        
-        return res.redirect(`/blog/${blog.slug}`);
+
+                await Blog.findByIdAndUpdate(blog._id, updateData);
+
+        indexBlog(blog._id.toString(), body).catch((err) =>
+            console.error('RAG re-indexing failed (non-blocking):', err.message)
+        );
+
+                return res.redirect(`/blog/${blog.slug}`);
     } catch (err) {
         console.error(err);
         return res.status(500).send("Something went wrong");
     }
 });
 
-// Delete blog route
 router.post('/delete/:slug', async (req, res) => {
     try {
         const blog = await findBySlugOrId(req.params.slug);
-        
-        if (!blog) {
+
+                if (!blog) {
             return res.status(404).send("Blog not found");
         }
-        
-        // Ensure user is authenticated
+
         if (!req.user) {
             return res.status(401).send("Unauthorized");
         }
 
-        // Check if user is the creator (supports populated or raw ObjectId)
         const ownerId = (blog.createdBy && blog.createdBy._id)
           ? blog.createdBy._id.toString()
           : blog.createdBy.toString();
         if (ownerId !== req.user._id) {
             return res.status(403).send("Unauthorized");
         }
-        
-        // Delete associated comments
+
         await Comment.deleteMany({ blogId: blog._id });
-        
-        // Delete the blog
+
         await Blog.findByIdAndDelete(blog._id);
-        
-        return res.redirect("/");
+
+                return res.redirect("/");
     } catch (err) {
         console.error(err);
         return res.status(500).send("Something went wrong");

@@ -6,8 +6,8 @@
   </head>
   <body>
     <%- include('partials/nav') %>
-    
-    <div class="container mt-4">
+
+        <div class="container mt-4">
       <div class="row justify-content-center">
         <div class="col-lg-8">
           <div class="auth-card">
@@ -23,7 +23,6 @@
               </div>
             <% } %>
 
-            <!-- Profile Information Update -->
             <div class="card mb-4">
               <div class="card-header">
                 <h5 class="mb-0">Profile Information</h5>
@@ -59,7 +58,6 @@
               </div>
             </div>
 
-            <!-- Profile Image Update -->
             <div class="card mb-4">
               <div class="card-header">
                 <h5 class="mb-0">Profile Image</h5>
@@ -83,7 +81,6 @@
               </div>
             </div>
 
-            <!-- Password Change -->
             <div class="card mb-4">
               <div class="card-header">
                 <h5 class="mb-0">Change Password</h5>
@@ -116,7 +113,6 @@
               </div>
             </div>
 
-            <!-- Twitter Auto-Posting Settings -->
             <div class="card mb-4">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">🐦 Twitter Auto-Posting</h5>
@@ -153,7 +149,6 @@
               </div>
             </div>
 
-            <!-- Account Actions -->
             <div class="card mb-4">
               <div class="card-header">
                 <h5 class="mb-0">Account Actions</h5>
@@ -168,7 +163,6 @@
                 </div>
               </div>
             </div>
-            <!-- Logout Button at the bottom -->
             <div class="d-grid mt-3">
               <a href="/user/logout" class="btn btn-danger btn-lg">Logout</a>
             </div>
@@ -179,13 +173,13 @@
 
     <%- include('./partials/footer') %>
     <%- include('./partials/scripts') %>
-    
-    <script>
+
+        <script>
     document.addEventListener('DOMContentLoaded', function() {
       const twitterStatus = document.getElementById('twitterStatus');
       const testTwitterBtn = document.getElementById('testTwitterBtn');
-      
-      // Helper function to show status messages
+
+            // Helper function to show status messages
       function showTwitterStatus(message, type = 'info') {
         if (twitterStatus) {
           twitterStatus.innerHTML = `<div class="alert alert-${type} alert-sm py-2 px-3 mb-0">${message}</div>`;
@@ -194,27 +188,27 @@
           }, 5000);
         }
       }
-      
-      // Removed bearer form submission; now using Connect Twitter redirect flow
-      
-      // Handle Twitter connection test
+
+            // Removed bearer form submission; now using Connect Twitter redirect flow
+
+            // Handle Twitter connection test
       if (testTwitterBtn) {
         testTwitterBtn.addEventListener('click', async function() {
           const originalText = testTwitterBtn.textContent;
           testTwitterBtn.disabled = true;
           testTwitterBtn.innerHTML = '⏳ Testing...';
-          
-          try {
+
+                    try {
             const response = await fetch('/twitter/test', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               }
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
+
+                        const data = await response.json();
+
+                        if (data.success) {
               alert(`✅ ${data.message}`);
             } else {
               alert(`❌ Error: ${data.error}`);

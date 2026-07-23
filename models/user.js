@@ -14,8 +14,8 @@ const userSchema = new Schema({
     },
     salt:{
         type: String,
-        
-    },
+
+            },
     password: {
         type: String,
         required: true
@@ -28,11 +28,10 @@ const userSchema = new Schema({
         type: String,
         enum: ['USER', 'ADMIN'],
         default: 'USER'
-       
-    },
+
+           },
     twitter: {
         accessToken: { type: String, select: false },
-        // Backward-compat secret field (no longer used with OAuth2 user context)
         accessTokenSecret: { type: String, select: false },
         refreshToken: { type: String, select: false },
         expiresAt: { type: Date },

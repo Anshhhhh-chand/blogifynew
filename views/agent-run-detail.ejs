@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('partials/head') %>
+    <title><%= run.plan && run.plan.title ? run.plan.title : run.topic %> — Agent Trace</title>
+    <style>
+      .trace-container { max-width: 900px; }
+      .step-card { border-left: 3px solid transparent; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 0.5rem; transition: background 0.2s; }
+      .step-card:hover { background: rgba(255,255,255,0.06); }
+      .step-planner { border-left-color: #818cf8; }
+      .step-researcher { border-left-color: #34d399; }
+      .step-writer { border-left-color: #60a5fa; }
+      .step-critic { border-left-color: #fb923c; }
+      .step-publisher { border-left-color: #a78bfa; }
+      .step-analytics { border-left-color: #f472b6; }
+      .step-meta_critic { border-left-color: #fbbf24; }
+      .step-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.2rem; }
+      .step-meta { font-size: 0.75rem; color: #64748b; }
+      .step-type-badge { font-size: 0.65rem; padding: 0.15em 0.5em; border-radius: 4px; background: rgba(255,255,255,0.08); color: #94a3b8; margin-right: 0.4rem; }
+      .step-expand { cursor: pointer; }
+      .step-output { background: rgba(0,0,0,0.3); border-radius: 6px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.8rem; font-family: monospace; white-space: pre-wrap; word-break: break-word; color: #94a3b8; max-height: 200px; overflow-y: auto; }
+      .duration-badge { font-size: 0.65rem; color: #475569; }
+      .agent-label { font-size: 0.65rem; padding: 0.15em 0.5em; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
+      .agent-planner { background: rgba(129,140,248,0.15); color: #818cf8; }
+      .agent-researcher { background: rgba(52,211,153,0.15); color: #34d399; }
+      .agent-writer { background: rgba(96,165,250,0.15); color: #60a5fa; }
+      .agent-critic { background: rgba(251,146,60,0.15); color: #fb923c; }
+      .agent-publisher { background: rgba(167,139,250,0.15); color: #a78bfa; }
+      .status-pill { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; padding: 0.4em 0.9em; border-radius: 999px; font-weight: 600; }
+      .status-running { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); animation: pulse 2s infinite; }
+      .status-awaiting_approval { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.4); }
+      .status-completed { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+      .status-failed { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+      .status-pending { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+      .status-rejected { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
+      .approval-card { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(234,88,12,0.1)); border: 1px solid rgba(245,158,11,0.4); border-radius: 16px; padding: 1.75rem; margin-bottom: 1.5rem; }
+      .draft-preview { background: rgba(0,0,0,0.4); border-radius: 10px; padding: 1.25rem; font-size: 0.85rem; line-height: 1.7; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: 'Inter', sans-serif; color: #cbd5e1; }
+      @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.6} }
+      .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+      @media(max-width:600px){ .plan-grid { grid-template-columns: 1fr; } }
+      .plan-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 1rem; }
+      .plan-card h6 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <%- include('partials/nav') %>
+
+    <div class="container trace-container mt-4">
+      <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+        <div>
+          <a href="/agent-runs" class="text-muted" style="font-size:0.85rem;">← All Runs</a>
+          <h1 class="mt-1 gradient-text" style="font-size:1.6rem; font-weight:700;">
+            <%= run.plan && run.plan.title ? run.plan.title : run.topic %>
+          </h1>
+          <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="status-pill status-<%= run.status %>" id="runStatus">
+              <span id="statusDot">●</span>
+              <span id="statusText"><%= run.status.replace('_', ' ') %></span>
+            </span>
+            <% if (run.writerRetries > 0) { %>
+              <span class="text-muted" style="font-size:0.8rem;">🔄 <%= run.writerRetries %> writer retries</span>
+            <% } %>
+            <span class="text-muted" style="font-size:0.8rem;"><%= new Date(run.createdAt).toLocaleString() %></span>
+          </div>
+        </div>
+        <% if (run.status === 'awaiting_approval') { %>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success" id="approveBtn">✅ Approve & Publish</button>
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">✕ Reject</button>
+          </div>
+        <% } %>
+        <% if (run.status === 'completed' && publishedBlog) { %>
+          <a href="/blog/<%= publishedBlog.slug %>" class="btn btn-primary">View Published Post →</a>
+        <% } %>
+      </div>
+
+      <% if (run.plan) { %>
+        <div class="plan-grid">
+          <div class="plan-card">
+            <h6>Target Keywords</h6>
+            <div class="d-flex flex-wrap gap-1">
+              <% (run.plan.targetKeywords || []).forEach(kw => { %>
+                <span class="badge" style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.75rem;"><%= kw %></span>
+              <% }) %>
+            </div>
+          </div>
+          <div class="plan-card">
+            <h6>Tone & SEO Focus</h6>
+            <div><strong><%= run.plan.tone || 'N/A' %></strong></div>
+            <div style="font-size:0.8rem;color:#94a3b8;margin-top:0.2rem;"><%= run.plan.seoFocus || '' %></div>
+          </div>
+          <% if (run.plan.outline && run.plan.outline.length > 0) { %>
+            <div class="plan-card" style="grid-column: 1 / -1;">
+              <h6>Content Outline</h6>
+              <ol style="font-size:0.85rem; color: #94a3b8; margin:0; padding-left:1.2rem;">
+                <% run.plan.outline.forEach(section => { %>
+                  <li><strong style="color:#e2e8f0;"><%= section.heading %></strong> — <%= section.notes %></li>
+                <% }) %>
+              </ol>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+
+      <% if (run.status === 'awaiting_approval' && run.draft) { %>
+        <div class="approval-card">
+          <h5 style="font-weight:600;">📋 Draft Ready for Review</h5>
+          <p style="font-size:0.85rem;color:#94a3b8;">
+            The critic approved this draft (after <%= run.writerRetries %> revision<%= run.writerRetries !== 1 ? 's' : '' %>). Review it below and approve or reject.
+          </p>
+          <% if (run.criticResult && run.criticResult.scores) { %>
+            <div class="d-flex gap-3 mb-3 flex-wrap">
+              <% Object.entries(run.criticResult.scores).forEach(([key, val]) => { %>
+                <div style="text-align:center;">
+                  <div style="font-size:1.2rem;font-weight:700;color:<%= val >= 7 ? '#4ade80' : val >= 5 ? '#fbbf24' : '#f87171' %>;"><%= val %></div>
+                  <div style="font-size:0.7rem;color:#64748b;text-transform:capitalize;"><%= key %></div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+          <div class="draft-preview"><%= run.draft %></div>
+        </div>
+      <% } %>
+
+      <h6 class="text-muted mb-3" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.08em;">
+        Execution Trace (<span id="stepCount"><%= steps.length %></span> steps)
+      </h6>
+
+      <div id="stepsContainer">
+        <% steps.forEach(function(step) { %>
+          <div class="step-card step-<%= step.agentName %>" data-step-id="<%= step._id %>">
+            <div class="d-flex justify-content-between align-items-start step-expand" onclick="toggleOutput(this)">
+              <div style="flex:1;">
+                <div class="step-label">
+                  <span class="agent-label agent-<%= step.agentName %>"><%= step.agentName %></span>
+                  <span class="step-type-badge"><%= step.stepType %></span>
+                  <%= step.label %>
+                  <% if (!step.success) { %><span style="color:#f87171;">✗</span><% } else { %><span style="color:#4ade80;">✓</span><% } %>
+                </div>
+                <div class="step-meta d-flex gap-2">
+                  <span><%= new Date(step.createdAt).toLocaleTimeString() %></span>
+                  <% if (step.durationMs > 0) { %><span class="duration-badge"><%= step.durationMs %>ms</span><% } %>
+                  <% if (step.errorMessage) { %><span style="color:#f87171;"><%= step.errorMessage.substring(0,60) %></span><% } %>
+                </div>
+              </div>
+              <span style="font-size:0.8rem; color:#475569; margin-left:0.5rem;">▸</span>
+            </div>
+            <div class="step-output d-none">
+              <%= JSON.stringify(step.output, null, 2) %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+
+      <% if (['pending', 'running'].includes(run.status)) { %>
+        <div class="text-center mt-4 text-muted" id="pollingIndicator">
+          <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+          Pipeline running... auto-refreshing every 5 seconds
+        </div>
+      <% } %>
+    </div>
+
+    <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content" style="background:#1e293b; border:1px solid rgba(255,255,255,0.1);">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="rejectModalLabel">Reject Draft</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <label class="form-label text-muted">Reason (optional)</label>
+            <textarea class="form-control" id="rejectReason" rows="3" placeholder="Explain why you're rejecting this draft..."></textarea>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmRejectBtn">Confirm Reject</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+    <%- include('./partials/scripts') %>
+    <script>
+      const RUN_ID = '<%= run._id %>';
+      const RUN_STATUS = '<%= run.status %>';
+
+      function toggleOutput(el) {
+        const card = el.closest('.step-card');
+        const output = card.querySelector('.step-output');
+        if (output) output.classList.toggle('d-none');
+      }
+
+      // Approve button
+      const approveBtn = document.getElementById('approveBtn');
+      if (approveBtn) {
+        approveBtn.addEventListener('click', async () => {
+          if (!confirm('Publish this draft? It will be posted to your blog and distribution channels.')) return;
+          approveBtn.disabled = true;
+          approveBtn.textContent = 'Publishing...';
+          try {
+            const res = await fetch('/agent-runs/' + RUN_ID + '/approve', {
+              method: 'POST',
+              headers: { 'Accept': 'application/json' },
+            });
+            const data = await res.json();
+            if (data.success) {
+              window.location.href = data.blogUrl;
+            } else {
+              alert('Error: ' + (data.error || 'Approval failed'));
+              approveBtn.disabled = false;
+              approveBtn.textContent = '✅ Approve & Publish';
+            }
+          } catch (err) {
+            alert('Network error. Please try again.');
+            approveBtn.disabled = false;
+            approveBtn.textContent = '✅ Approve & Publish';
+          }
+        });
+      }
+
+      // Reject button
+      const confirmRejectBtn = document.getElementById('confirmRejectBtn');
+      if (confirmRejectBtn) {
+        confirmRejectBtn.addEventListener('click', async () => {
+          const reason = document.getElementById('rejectReason').value;
+          confirmRejectBtn.disabled = true;
+          confirmRejectBtn.textContent = 'Rejecting...';
+          try {
+            const res = await fetch('/agent-runs/' + RUN_ID + '/reject', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ reason }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              window.location.href = '/agent-runs?rejected=1';
+            } else {
+              alert('Error: ' + data.error);
+              confirmRejectBtn.disabled = false;
+              confirmRejectBtn.textContent = 'Confirm Reject';
+            }
+          } catch (err) {
+            alert('Network error. Please try again.');
+          }
+        });
+      }
+
+      // Live polling for running/pending runs
+      if (['pending', 'running'].includes(RUN_STATUS)) {
+        let lastStepCount = <%= steps.length %>;
+
+        async function poll() {
+          try {
+            const res = await fetch('/agent-runs/' + RUN_ID + '/api', { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            if (!data.success) return;
+
+            const { run, steps } = data;
+
+            // Update status badge
+            document.getElementById('statusText').textContent = run.status.replace('_', ' ');
+            document.getElementById('runStatus').className = 'status-pill status-' + run.status;
+
+            // Append new steps
+            if (steps.length > lastStepCount) {
+              const container = document.getElementById('stepsContainer');
+              for (let i = lastStepCount; i < steps.length; i++) {
+                const s = steps[i];
+                const div = document.createElement('div');
+                div.className = 'step-card step-' + s.agentName;
+                var successIcon = s.success ? '<span style="color:#4ade80;">\u2713</span>' : '<span style="color:#f87171;">\u2717</span>';
+                var durationHtml = s.durationMs > 0 ? '<span class="duration-badge">' + s.durationMs + 'ms</span>' : '';
+                var outputText = s.output ? JSON.stringify(s.output, null, 2) : '';
+                div.innerHTML = '<div class="d-flex justify-content-between align-items-start step-expand" onclick="toggleOutput(this)">'
+                  + '<div style="flex:1;"><div class="step-label">'
+                  + '<span class="agent-label agent-' + s.agentName + '">' + s.agentName + '</span> '
+                  + '<span class="step-type-badge">' + s.stepType + '</span> '
+                  + s.label + ' ' + successIcon
+                  + '</div><div class="step-meta d-flex gap-2">'
+                  + '<span>' + new Date(s.createdAt).toLocaleTimeString() + '</span>'
+                  + durationHtml
+                  + '</div></div>'
+                  + '<span style="font-size:0.8rem;color:#475569;margin-left:0.5rem;">\u25b8</span>'
+                  + '</div><div class="step-output d-none">' + outputText + '</div>';
+                container.appendChild(div);
+              }
+              lastStepCount = steps.length;
+              document.getElementById('stepCount').textContent = steps.length;
+            }
+
+            // Stop polling when done
+            if (['completed', 'failed', 'awaiting_approval', 'rejected'].includes(run.status)) {
+              document.getElementById('pollingIndicator')?.remove();
+              if (run.status !== 'awaiting_approval') return; // Stop
+              else window.location.reload(); // Reload to show approval UI
+            }
+
+            setTimeout(poll, 5000);
+          } catch (err) {
+            setTimeout(poll, 5000);
+          }
+        }
+
+        setTimeout(poll, 5000);
+      }
+    </script>
+  </body>
+</html>

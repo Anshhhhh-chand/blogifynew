@@ -1,6 +1,4 @@
-// Direct Groq API integration (replacing LiteLLM due to compatibility issues)
 async function chat(messages, model = "llama3-8b-8192") {
-  // Allow overriding the model via env to match available models for the API key
   const modelToUse = process.env.GROQ_MODEL || model || 'groq/compound';
   console.log('Using Groq model:', modelToUse);
   try {
@@ -20,7 +18,6 @@ async function chat(messages, model = "llama3-8b-8192") {
 
     if (!response.ok) {
       const errorText = await response.text();
-      // include the raw API error for better debugging
       throw new Error(`Groq API error: ${response.status} - ${errorText}`);
     }
 
@@ -33,7 +30,6 @@ async function chat(messages, model = "llama3-8b-8192") {
       modelRequested: modelToUse,
       hasApiKey: !!process.env.GROQ_API_KEY
     });
-    // Surface the underlying error message for callers
     throw new Error('Failed to get response from AI service: ' + (error.message || 'Unknown'));
   }
 }

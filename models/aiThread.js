@@ -37,10 +37,8 @@ const aiThreadSchema = new mongoose.Schema({
   }
 });
 
-// Compound index for efficient queries
 aiThreadSchema.index({ userId: 1, threadId: 1, createdAt: -1 });
 
-// Static method to create a new thread entry
 aiThreadSchema.statics.createThreadEntry = async function(userId, threadId, nodeName, stateSnapshot, metadata = {}) {
   try {
     const entry = new this({
@@ -51,8 +49,8 @@ aiThreadSchema.statics.createThreadEntry = async function(userId, threadId, node
       metadata,
       createdAt: new Date()
     });
-    
-    await entry.save();
+
+        await entry.save();
     return entry;
   } catch (error) {
     console.error('Error creating thread entry:', error);
@@ -60,7 +58,6 @@ aiThreadSchema.statics.createThreadEntry = async function(userId, threadId, node
   }
 };
 
-// Static method to get thread history
 aiThreadSchema.statics.getThreadHistory = async function(userId, threadId, limit = 10) {
   try {
     return await this.find({ userId, threadId })
@@ -73,7 +70,6 @@ aiThreadSchema.statics.getThreadHistory = async function(userId, threadId, limit
   }
 };
 
-// Static method to get user's recent AI activity
 aiThreadSchema.statics.getUserActivity = async function(userId, limit = 20) {
   try {
     return await this.find({ userId })
@@ -87,7 +83,6 @@ aiThreadSchema.statics.getUserActivity = async function(userId, limit = 20) {
   }
 };
 
-// Static method to cleanup old threads (older than 30 days)
 aiThreadSchema.statics.cleanupOldThreads = async function() {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -100,7 +95,6 @@ aiThreadSchema.statics.cleanupOldThreads = async function() {
   }
 };
 
-// Instance method to get related thread entries
 aiThreadSchema.methods.getRelatedEntries = async function() {
   try {
     return await this.constructor.find({

@@ -27,9 +27,7 @@ const blogSchema = new Schema({
     timestamps:true
 });
 
-// Generate slug BEFORE validation so the `required` rule passes on create
 blogSchema.pre('validate', function(next) {
-    // Only generate slug if missing or title changed
     if (!this.slug || this.isModified('title')) {
         const base = (this.title || '')
             .toLowerCase()
@@ -38,7 +36,6 @@ blogSchema.pre('validate', function(next) {
             .replace(/-+/g, '-')
             .replace(/^-+|-+$/g, '');
 
-        // Always append a short timestamp for uniqueness on new docs
         if (this.isNew) {
             const timestamp = Date.now().toString().slice(-6);
             this.slug = base ? `${base}-${timestamp}` : timestamp;

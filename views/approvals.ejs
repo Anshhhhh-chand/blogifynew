@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <%- include('partials/head') %>
+    <title>Pending Approvals — Blogify</title>
+    <style>
+      .approval-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(245,158,11,0.25); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; transition: all 0.2s; }
+      .approval-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(245,158,11,0.45); }
+      .draft-preview { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 1rem; font-size: 0.8rem; line-height: 1.6; max-height: 200px; overflow-y: auto; white-space: pre-wrap; color: #94a3b8; margin: 0.75rem 0; cursor: pointer; }
+      .score-chip { display: inline-flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 0.3rem 0.6rem; }
+      .score-chip .score-val { font-size: 1rem; font-weight: 700; }
+      .score-chip .score-lbl { font-size: 0.6rem; color: #64748b; text-transform: uppercase; }
+      .empty-state { text-align: center; padding: 4rem 2rem; }
+    </style>
+  </head>
+  <body>
+    <%- include('partials/nav') %>
+
+    <div class="container mt-4" style="max-width:860px;">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="/agent-runs" class="text-muted" style="font-size:0.85rem;">← All Runs</a>
+          <h1 class="mt-1 gradient-text" style="font-size:1.8rem; font-weight:700;">⏳ Pending Approvals</h1>
+          <p class="text-muted mb-0">Review AI-generated drafts before they go live</p>
+        </div>
+        <span class="badge rounded-pill" style="background:rgba(245,158,11,0.2);color:#f59e0b;font-size:0.9rem;padding:0.5em 1em;">
+          <%= pendingCount %> pending
+        </span>
+      </div>
+
+      <% if (runs.length === 0) { %>
+        <div class="empty-state">
+          <div style="font-size:3.5rem;">✅</div>
+          <h4 class="mt-3">All caught up!</h4>
+          <p class="text-muted">No drafts waiting for your approval. <a href="/agent-runs">Start a new pipeline run</a>.</p>
+        </div>
+      <% } else { %>
+        <% runs.forEach(function(run) { %>
+          <div class="approval-card">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <h5 style="font-weight:600; margin-bottom:0.25rem;">
+                  <%= run.plan && run.plan.title ? run.plan.title : run.topic %>
+                </h5>
+                <div class="text-muted" style="font-size:0.8rem;">
+                  Topic: <%= run.topic %> · <%= run.writerRetries %> revision<%= run.writerRetries !== 1 ? 's' : '' %> · <%= new Date(run.createdAt).toLocaleString() %>
+                </div>
+              </div>
+              <a href="/agent-runs/<%= run._id %>" class="btn btn-sm btn-outline-secondary">View Full Trace</a>
+            </div>
+
+            <% if (run.criticResult && run.criticResult.scores) { %>
+              <div class="d-flex gap-2 mt-3 flex-wrap">
+                <% Object.entries(run.criticResult.scores).forEach(([key, val]) => { %>
+                  <div class="score-chip">
+                    <span class="score-val" style="color: <%= val >= 7 ? '#4ade80' : val >= 5 ? '#fbbf24' : '#f87171' %>"><%= val %></span>
+                    <span class="score-lbl"><%= key %></span>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <% if (run.draft) { %>
+              <div class="draft-preview" onclick="this.style.maxHeight = this.style.maxHeight === 'none' ? '200px' : 'none'; this.title = 'Click to collapse';" title="Click to expand">
+                <%= run.draft.substring(0, 600) %><%= run.draft.length > 600 ? '\n\n... (click to expand full draft in trace viewer)' : '' %>
+              </div>
+            <% } %>
+
+            <% if (run.plan && run.plan.targetKeywords && run.plan.targetKeywords.length > 0) { %>
+              <div class="d-flex flex-wrap gap-1 mb-3">
+                <% run.plan.targetKeywords.forEach(kw => { %>
+                  <span class="badge" style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem;"><%= kw %></span>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm approve-btn" data-run-id="<%= run._id %>">✅ Approve & Publish</button>
+              <button class="btn btn-outline-danger btn-sm reject-btn" data-run-id="<%= run._id %>" data-run-title="<%= run.plan && run.plan.title ? run.plan.title : run.topic %>">✕ Reject</button>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content" style="background:#1e293b; border:1px solid rgba(255,255,255,0.1);">
+          <div class="modal-header border-0">
+            <h5 class="modal-title">Reject Draft</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted" id="rejectTargetTitle" style="font-size:0.85rem;"></p>
+            <label class="form-label">Reason (optional)</label>
+            <textarea class="form-control" id="rejectReason" rows="3" placeholder="Why are you rejecting this draft?"></textarea>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmRejectBtn">Confirm Reject</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./partials/footer') %>
+    <%- include('./partials/scripts') %>
+    <script>
+      let targetRunId = null;
+      const rejectModal = new bootstrap.Modal(document.getElementById('rejectModal'));
+
+      // Approve buttons
+      document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const runId = this.dataset.runId;
+          if (!confirm('Publish this draft?')) return;
+          this.disabled = true;
+          this.textContent = 'Publishing...';
+          try {
+            const res = await fetch('/agent-runs/' + runId + '/approve', {
+              method: 'POST',
+              headers: { 'Accept': 'application/json' },
+            });
+            const data = await res.json();
+            if (data.success) {
+              window.location.href = data.blogUrl;
+            } else {
+              alert('Error: ' + data.error);
+              this.disabled = false;
+              this.textContent = '✅ Approve & Publish';
+            }
+          } catch {
+            alert('Network error');
+          }
+        });
+      });
+
+      // Reject buttons
+      document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          targetRunId = this.dataset.runId;
+          document.getElementById('rejectTargetTitle').textContent = '"' + this.dataset.runTitle + '"';
+          document.getElementById('rejectReason').value = '';
+          rejectModal.show();
+        });
+      });
+
+      document.getElementById('confirmRejectBtn').addEventListener('click', async function() {
+        if (!targetRunId) return;
+        const reason = document.getElementById('rejectReason').value;
+        this.disabled = true;
+        this.textContent = 'Rejecting...';
+        try {
+          const res = await fetch('/agent-runs/' + targetRunId + '/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ reason }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            rejectModal.hide();
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.error);
+            this.disabled = false;
+            this.textContent = 'Confirm Reject';
+          }
+        } catch {
+          alert('Network error');
+        }
+      });
+    </script>
+  </body>
+</html>

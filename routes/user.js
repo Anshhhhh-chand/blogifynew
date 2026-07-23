@@ -50,7 +50,6 @@ router.get('/logout',(req,res)=>{
     res.clearCookie("token").redirect("/");
 })
 
-// Profile routes
 router.get('/profile', checkForAuthenticationInCookie("token"), async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
@@ -79,8 +78,7 @@ router.post('/profile/password', checkForAuthenticationInCookie("token"), async 
     try {
         const { currentPassword, newPassword } = req.body;
         const user = await User.findById(req.user._id);
-        
-        // Verify current password
+
         const userProvidedHash = createHmac("sha256", user.salt).update(currentPassword).digest('hex');
         if (userProvidedHash !== user.password) {
             return res.render("profile", {
@@ -88,12 +86,11 @@ router.post('/profile/password', checkForAuthenticationInCookie("token"), async 
                 error: "Current password is incorrect"
             });
         }
-        
-        // Update password
+
         user.password = newPassword;
         await user.save();
-        
-        return res.redirect("/user/profile");
+
+                return res.redirect("/user/profile");
     } catch (error) {
         return res.redirect("/user/profile");
     }
@@ -104,18 +101,17 @@ router.post('/profile/image', checkForAuthenticationInCookie("token"), upload.si
         if (!req.file) {
             return res.redirect("/user/profile");
         }
-        
-        await User.findByIdAndUpdate(req.user._id, {
+
+                await User.findByIdAndUpdate(req.user._id, {
             profileImageURL: req.file.path
         });
-        
-        return res.redirect("/user/profile");
+
+                return res.redirect("/user/profile");
     } catch (error) {
         return res.redirect("/user/profile");
     }
 })
 
-// User Home Page - Show user's own blogs
 router.get('/home', checkForAuthenticationInCookie("token"), async (req, res) => {
     try {
         const blogs = await Blog.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
